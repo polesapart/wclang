@@ -1015,31 +1015,31 @@ static void parseargs(int argc, char **argv, const char *target,
             }
             case 'm':
             {
-                if (!std::strcmp(arg, "-mwindows") && !cmdargs.usemingwlinker)
+                if (!std::strcmp(arg, "-mwindows") && cmdargs.usemingwlinker == subsystem::standard)
                 {
                     /*
                      * Clang doesn't support -mwindows (yet)
                      */
 
-                    cmdargs.usemingwlinker = 2;
+                    cmdargs.usemingwlinker = subsystem::windows;
                     continue;
                 }
-                else if (!std::strcmp(arg, "-mdll") && !cmdargs.usemingwlinker)
+                else if (!std::strcmp(arg, "-mdll") && cmdargs.usemingwlinker == subsystem::standard)
                 {
                     /*
                      * Clang doesn't support -mdll (yet)
                      */
 
-                    cmdargs.usemingwlinker = 3;
+                    cmdargs.usemingwlinker = subsystem::dll;
                     continue;
                 }
-                else if (!std::strcmp(arg, "-mconsole") && !cmdargs.usemingwlinker)
+                else if (!std::strcmp(arg, "-mconsole") && cmdargs.usemingwlinker == subsystem::standard)
                 {
                     /*
                      * Clang doesn't support -mconsole (yet)
                      */
 
-                    cmdargs.usemingwlinker = 4;
+                    cmdargs.usemingwlinker = subsystem::console;
                     continue;
                 }
                 break;
@@ -1296,7 +1296,7 @@ static void parseargs(int argc, char **argv, const char *target,
                             return;
                         }
 
-                        cmdargs.usemingwlinker = 1;
+                        cmdargs.usemingwlinker = subsystem::use_mingw_linker;
                     };
 
                     delayedcommands.push_back(dc_tuple(usemingwlinker, arg-STRLEN(COMMANDPREFIX)));
@@ -1544,15 +1544,23 @@ int main(int argc, char **argv)
      * Setup compiler Arguments
      */
 
-    if (cmdargs.islinkstep && cmdargs.usemingwlinker)
+    if (cmdargs.islinkstep)
     {
-        compiler = target + (iscxx ? "-g++" : "-gcc");
-
-        if (cmdargs.usemingwlinker > 1)
-        {
-            constexpr const char *desc[] = { "-mwindows", "-mdll", "-mconsole" };
-            size_t index = cmdargs.usemingwlinker-2;
-            warn("linking with % because of unimplemented %", compiler, desc[index]);
+        switch (cmdargs.usemingwlinker) {
+            case subsystem::standard:
+                break;
+            case subsystem::use_mingw_linker:
+                compiler = target + (iscxx ? "-g++" : "-gcc");
+                break;
+            case subsystem::console:
+                linkerflags.push_back("-Wl,--subsystem,console");
+                break;
+            case subsystem::windows:
+                linkerflags.push_back("-Wl,--subsystem,windows");
+                break;
+            case subsystem::dll:
+                linkerflags.push_back("-Wl,--subsystem,dll");
+                break;
         }
     }
 
@@ -1654,7 +1662,7 @@ int main(int argc, char **argv)
         pushcompilerflags(iscxx ? cxxflags : cflags);
         pushcompilerflags(linkerflags);
 
-        if (!cmdargs.islinkstep || !cmdargs.usemingwlinker)
+        if (!cmdargs.islinkstep || cmdargs.usemingwlinker != subsystem::standard)
         {
             char *p;
 
@@ -1761,7 +1769,7 @@ int main(int argc, char **argv)
         if (!std::strncmp(arg, buf, BUFSIZE))
             continue;
 
-        if (cmdargs.islinkstep && cmdargs.usemingwlinker)
+        if (cmdargs.islinkstep && cmdargs.usemingwlinker != subsystem::standard)
         {
             if (!std::strncmp(arg, "-Qunused", STRLEN("-Qunused")))
                 continue;

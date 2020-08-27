@@ -165,6 +165,14 @@ enum optimize {
     SIZE_2
 };
 
+enum class subsystem {
+    standard = 0,
+    use_mingw_linker,
+    windows,
+    dll,
+    console
+};
+
 struct commandargs {
     bool verbose;
     compilerver clangversion;
@@ -188,7 +196,7 @@ struct commandargs {
     bool nointrinsics;
     int exceptions;
     int optimizationlevel;
-    int usemingwlinker;
+    subsystem usemingwlinker;
 
     commandargs(string_vector &intrinpaths, string_vector &stdpaths, string_vector &cxxpaths,
                 string_vector &cflags, string_vector &cxxflags,
@@ -201,5 +209,5 @@ struct commandargs {
                 linkerflags(linkerflags), target(target), compiler(compiler), compilerpath(compilerpath),
                 compilerbinpath(compilerbinpath), env(env), args(args), iscxx(iscxx),
                 appendexe(false), iscompilestep(false), islinkstep(false), nointrinsics(false),
-                exceptions(-1), optimizationlevel(0), usemingwlinker(0) {}
+                exceptions(-1), optimizationlevel(0), usemingwlinker(subsystem::standard) {}
 } __attribute__ ((aligned (8)));
